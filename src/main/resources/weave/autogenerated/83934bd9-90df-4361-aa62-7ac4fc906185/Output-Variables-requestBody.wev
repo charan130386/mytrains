@@ -1,0 +1,20 @@
+%dw 2.0
+
+type auto_83934bd9_90df_4361_aa62_7ac4fc906185_Output_Variables_requestBody = {|
+  method: String, 
+  path: String, 
+  attributes: {|
+    queryparams: Array<{|      key: String,       value: String    |}>, 
+    uriparams: String
+  |}, 
+  body: {|
+    profile: {|
+      firstName: Any, 
+      lastName: Any, 
+      email: Any, 
+      login: String
+    |}, 
+    credentials: {| password: {| value: Any |} |}
+  |}
+|}
+

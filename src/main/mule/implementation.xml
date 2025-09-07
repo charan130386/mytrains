@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:request-config name="HTTP_Request_configuration1" doc:name="HTTP Request configuration" doc:id="68920fa1-591e-41ab-a080-fee0b7a80bcc" basePath="/api/v1">
+		<http:request-connection protocol="HTTPS" host="integrator-3460202-admin.okta.com" />
+	</http:request-config>
+	<flow name="create-user" doc:id="83934bd9-90df-4361-aa62-7ac4fc906185" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="d5466eb8-ddf9-4815-9cd8-156a4de34ab1" message="flow to create user started"/>
+		<ee:transform doc:name="Okta Format" doc:id="1facdc44-8a3a-4b72-a2c1-576721e38b8d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "profile": {
+    "firstName": payload.firstName,
+    "lastName": payload.lastName,
+    "email": payload.email,
+    "login": payload.login
+  },
+  "credentials": {
+    "password" : { "value": payload.password }
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="3c80b145-2658-4f5e-9ae4-763f01b94c70" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="requestBody" ><![CDATA[%dw 2.0
+output application/json
+
+---
+
+{
+  "method": "POST",
+  "path": "/users",
+    "queryparams": [
+      {
+        "key": "activate",
+        "value": "true"
+      }
+    ],
+    "uriparams": [],
+  "body": payload
+}
+
+]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="f93bed67-eff7-4d51-b379-786716c4c8f6" name="okta_request"/>
+		<ee:transform doc:name="response" doc:id="5cf34302-ef35-4439-b1c0-177916e3f342" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+ "status": "success",
+ "code": 200,
+ "response":
+ {
+ 	"userId": payload.id
+ }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="End Logger" doc:id="23436dff-2342-4b0d-9af4-0d7c623fe88c" message="flow to create user ended"/>
+	</flow>
+	<flow name="change_password" doc:id="2660299f-7995-46c2-bd8a-af6499ed3984" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="7f2eaa97-b5b2-466d-ad90-7110b54ad72e" message="flow to change password started" />
+		<ee:transform doc:name="Okta Format" doc:id="4e2f2162-880e-45ac-8a27-e0a2cb1c5e62" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+    oldPassword: { value: payload.oldPassword.value },
+    newPassword: { value: payload.newPassword.value }
+        }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="1648d2ba-3d28-4b06-a9e3-1be5076e8a64" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="requestBody" ><![CDATA[%dw 2.0
+output application/json
+
+---
+
+{
+  "method": "POST",
+  "path": "/users/{userId}/credentials/change_password",
+   queryparams: [],
+   uriparams: [
+      {
+        key: "userId",
+        value: attributes.uriParams.userId
+      }
+    ]
+  ,
+  "body": payload
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="e4c9a187-c469-4be8-b528-5588cd25c562" name="okta_request"/>
+		<logger level="INFO" doc:name="End Logger" doc:id="6de12219-fed5-40c3-8526-8e1e709b3bd3" message="flow to change password ended" />
+	</flow>
+	<flow name="recover_password" doc:id="00a6968c-d6d4-4cdb-b7aa-bbb09f89904c" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="5d37d3d2-d692-41a4-95f9-34752ccd3b36" message="flow to recover password  started" />
+		<ee:transform doc:name="Okta Format" doc:id="f7b58bff-8661-4735-8852-e0370adae179" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "username": payload.username,
+  "factorType": payload.factorType,
+  "relayState": payload.relayState
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="f5a3c849-7879-4e5a-8335-ff69f3981af0" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="requestBody" ><![CDATA[%dw 2.0
+output application/json
+
+---
+
+{
+  "method": "POST",
+  "path": "/authn/recovery/password",
+   "queryparams": [],
+   "uriparams": [],
+  "body": payload
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="2257d820-a706-419d-af48-00c93d2fb7a3" name="okta_request"/>
+		<logger level="INFO" doc:name="End Logger" doc:id="aaad46e5-1cb8-4745-94ed-2379e898e554" message="flow to recover password ended" />
+	</flow>
+	<flow name="sessiontoken" doc:id="591065d0-25f3-4644-98eb-35a0ce7298e9" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="55cc61a6-4bdb-4f33-9b70-a4828fd5508e" message="flow to create session token started" />
+		<ee:transform doc:name="Okta Format" doc:id="5c9b5455-7c99-4064-a81d-c7a8b893637c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "username": payload.username,
+  "password": payload.password,
+  "options": {
+    "multiOptionalFactorEnroll": payload.multiOptionalFactorEnroll,
+    "warnBeforePasswordExpired": payload.warnBeforePasswordExpired
+  }  
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="10dffb07-8596-456f-8a95-d05ba341de64" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="requestBody" ><![CDATA[%dw 2.0
+output application/json
+
+---
+
+{
+  "method": "POST",
+  "path": "/authn",
+   "queryparams": [],
+    "uriparams": [],
+  "body": payload
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="ca236939-4bd6-4532-aeef-f6437d1f887c" name="okta_request" />
+		<logger level="INFO" doc:name="End Logger" doc:id="8dfca59a-9502-42ed-8907-eadc25b99aac" message="flow to create user ended" />
+	</flow>
+	<flow name="createsession" doc:id="88ff6fa6-0897-4a90-a31e-71ac3af327fe" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="f6e697e4-3f68-4157-a058-0797ad5e3088" message="flow to create session with token started" />
+		<ee:transform doc:name="Okta Format" doc:id="6c6b94ec-0999-486c-be18-4c340bab8a89" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "sessionToken": payload.sessionToken
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="bd13df97-86fe-479a-b40c-e313883dff74" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="requestBody" ><![CDATA[%dw 2.0
+output application/json
+
+---
+
+{
+  "method": "POST",
+  "path": "/sessions",
+  "queryparams": [{
+        "key": "additionalFields",
+        "value": "cookieToken"
+      }],
+    "uriparams": [],
+  "body": payload
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="913d3f50-9010-4886-b6e8-d245969379c1" name="okta_request" />
+		<logger level="INFO" doc:name="End Logger" doc:id="43a49640-1b86-4d41-b6e1-ef3491d5a95d" message="flow to create session with token ended" />
+	</flow>
+	<flow name="validate_session" doc:id="a91a4b1e-322e-4ac1-b981-40dbf9898049" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="7335ccd2-4dd9-40c4-9986-ab6945f69b43" message="flow to validate session started" />
+		<ee:transform doc:name="Transform Message" doc:id="5482f69a-6ee8-4af6-a690-33f3023ada40" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="requestBody" ><![CDATA[%dw 2.0
+output application/json
+
+---
+
+{
+  "method": "GET",
+  "path": "/sessions/{sessionId}",
+  "queryparams": [
+    ],
+    "uriparams": [   {
+        key: "sessionId",
+        value: attributes.uriParams.sessionId
+      }],
+
+  "body": ""
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="50d3d3d4-180b-449e-8cd5-fe7b93708cf9" name="okta_request" />
+		<logger level="INFO" doc:name="End Logger" doc:id="ae94ee3d-db0b-443b-ab52-519bef38a980" message="flow to validate session ended" />
+	</flow>
+	<flow name="clear_session" doc:id="04afc45b-4a89-4066-bf98-ab160ef15f65" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="6236954a-03ea-4d12-8eab-14e66f537d8b" message="flow to delete session started" />
+		<ee:transform doc:name="Transform Message" doc:id="3fff7b9c-c875-4bc6-a655-bc808da4a4d1" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="requestBody" ><![CDATA[%dw 2.0
+output application/json
+
+---
+
+{
+  "method": "DELETE",
+  "path": "/sessions/{sessionId}",
+    "queryparams": [
+    ],
+    "uriparams": [   {
+        key: "sessionId",
+        value: attributes.uriParams.sessionId
+      }],
+  
+  "body": ""
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="bdc9e5a6-ab8f-4bb0-9d95-aa642ab27243" name="okta_request" />
+		<logger level="INFO" doc:name="End Logger" doc:id="716437e2-c1ae-4223-97e0-27670552cdcc" message="flow to delete session ended" />
+	</flow>
+	<sub-flow name="okta_request" doc:id="f77867ee-904c-4467-9f81-047987de676c" >
+		<http:request method="#[vars.requestBody.method]" doc:name="Request" doc:id="587cd64d-bb0a-43d5-8d41-3eadd4016146" config-ref="HTTP_Request_configuration1" path="#[vars.requestBody.path]">
+			<http:body><![CDATA[#[vars.requestBody.body]]]></http:body>
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"Authorization" : "SSWS 00U_tEdxuZLGZBFGasZFLQ2D_Co4Z7DClnL3jCciZg"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/json
+---
+if(vars.requestBody.uriparams != [])
+(vars.requestBody.uriparams map ((item) -> {
+    (item.key): item.value
+})) reduce ((acc, item) -> acc ++ item)
+else {}]]]></http:uri-params>
+			<http:query-params><![CDATA[#[output application/json
+---
+if(vars.requestBody.queryparams != [])
+(vars.requestBody.queryparams map ((item) -> {
+    (item.key): item.value
+})) reduce ((acc, item) -> acc ++ item)
+else {}]]]></http:query-params>
+		</http:request>
+	</sub-flow>
+</mule>
